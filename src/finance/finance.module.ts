@@ -19,6 +19,7 @@ import { WalletController } from './controller/Wallet.controller';
 import { TransactionController } from './controller/Transaction.controller';
 import { ScoreValueController } from './controller/ScoreValue.controller';
 import { ManualWithdrawalRequestController } from './controller/manual-withdrawal-request.controller';
+import { UserTask } from '../project/entities/UserTask.entity';
 
 @Module({
   imports: [
@@ -28,6 +29,8 @@ import { ManualWithdrawalRequestController } from './controller/manual-withdrawa
       Transaction,
       ManualWithdrawalRequest,
       Project,
+      UserTask,
+
     ]),
   ],
   controllers: [

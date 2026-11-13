@@ -20,6 +20,8 @@ import {
   CreateManualWithdrawalRequestDto,
   RejectManualWithdrawalRequestDto,
 } from '../dto/manual-withdrawal-request.dto';
+import { UserTask } from '../../project/entities/UserTask.entity';
+
 
 @Injectable()
 export class ManualWithdrawalRequestService {
@@ -35,16 +37,46 @@ export class ManualWithdrawalRequestService {
   async createRequest(
     userId: string,
     dto: CreateManualWithdrawalRequestDto,
+    
   ) {
     const project = await this.projectRepository.findOne({
       where: { id: dto.project_id },
     });
 
+    
     if (!project) {
       throw new NotFoundException('Project not found');
     }
 
     return this.dataSource.transaction(async (manager) => {
+      // Verify that the user has an active Contributor or Reviewer
+    // assignment in the requested project.
+    const activeAssignment = await manager
+      .getRepository(UserTask)
+      .createQueryBuilder('userTask')
+      .innerJoin('userTask.task', 'task')
+      .where('userTask.user_id = :userId', { userId })
+      .andWhere('task.project_id = :projectId', {
+        projectId: project.id,
+      })
+      .andWhere('userTask.role IN (:...roles)', {
+        roles: ['Contributor', 'Reviewer'],
+      })
+      .andWhere('userTask.status = :status', {
+        status: 'Active',
+      })
+      .getOne();
+
+    if (!activeAssignment) {
+      throw new ForbiddenException(
+        'You must have an active Contributor or Reviewer assignment in this project to request a withdrawal',
+      );
+    }
+
+    // Reserve wallet funds only after authorization succeeds.
+
+
+
       const transaction = await this.walletService.reserveWithdrawal(
         userId,
         dto.amount,
